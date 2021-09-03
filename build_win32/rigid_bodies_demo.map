@@ -1,6 +1,6 @@
  rigid_bodies_demo
 
- Timestamp is 61323813 (Fri Sep  3 10:58:27 2021)
+ Timestamp is 6132a9ef (Fri Sep  3 19:04:15 2021)
 
  Preferred load address is 0000000140000000
 
@@ -2891,16 +2891,16 @@
  0002:00000300       ?pre_cpp_initializer@@3P6AXXZEA 000000014003a300     LIBCMTD:exe_winmain.obj
  0002:00000318       ?pre_c_initializer@@3P6AHXZEA 000000014003a318     LIBCMTD:exe_winmain.obj
  0002:00000320       ?post_pgo_initializer@@3P6AHXZEA 000000014003a320     LIBCMTD:exe_winmain.obj
- 0002:00000390       $SG144076                  000000014003a390     win32_main.obj
- 0002:000003a8       $SG144077                  000000014003a3a8     win32_main.obj
- 0002:000003b8       $SG144080                  000000014003a3b8     win32_main.obj
- 0002:000003d0       $SG144081                  000000014003a3d0     win32_main.obj
- 0002:000003e0       $SG144084                  000000014003a3e0     win32_main.obj
- 0002:000003f8       $SG144086                  000000014003a3f8     win32_main.obj
- 0002:00000420       $SG144087                  000000014003a420     win32_main.obj
- 0002:00000450       $SG144088                  000000014003a450     win32_main.obj
- 0002:00000468       $SG144089                  000000014003a468     win32_main.obj
- 0002:00000478       $SG144092                  000000014003a478     win32_main.obj
+ 0002:00000390       $SG144085                  000000014003a390     win32_main.obj
+ 0002:000003a8       $SG144086                  000000014003a3a8     win32_main.obj
+ 0002:000003b8       $SG144089                  000000014003a3b8     win32_main.obj
+ 0002:000003d0       $SG144090                  000000014003a3d0     win32_main.obj
+ 0002:000003e0       $SG144093                  000000014003a3e0     win32_main.obj
+ 0002:000003f8       $SG144095                  000000014003a3f8     win32_main.obj
+ 0002:00000420       $SG144096                  000000014003a420     win32_main.obj
+ 0002:00000450       $SG144097                  000000014003a450     win32_main.obj
+ 0002:00000468       $SG144098                  000000014003a468     win32_main.obj
+ 0002:00000478       $SG144101                  000000014003a478     win32_main.obj
  0002:000004e8       GS_ExceptionPointers       000000014003a4e8     LIBCMTD:gs_report.obj
  0002:00000550       ?module_names@?A0xbfd18cd1@@3QBQEB_WB 000000014003a550     libvcruntimed:winapi_downlevel.obj
  0002:000007e0       ?candidate_modules@?1??try_get_FlsAlloc@@YAP6AKP6AXPEAX@Z@ZXZ@4QBW4module_id@?A0xbfd18cd1@@B 000000014003a7e0     libvcruntimed:winapi_downlevel.obj

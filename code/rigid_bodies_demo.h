@@ -11,6 +11,7 @@
 
 #include "rigid_body_particle_lesson1.h"
 #include "rigid_body_lesson1.h"
+#include "rigid_body_collision_lesson2.h"
 
 //
 // NOTE: Render Data
@@ -92,6 +93,7 @@ struct demo_state
     // NOTE: Sims
     particle_sim_l1 ParticleSimL1;
     rigid_body_sim_l1 RigidBodySimL1;
+    rigid_body_sim_l2 RigidBodySimL2;
 };
 
 global demo_state* DemoState;

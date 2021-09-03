@@ -45,6 +45,7 @@ inline void SceneOpaqueInstanceAdd(render_scene* Scene, u32 MeshId, m4 WTransfor
 
 #include "rigid_body_particle_lesson1.cpp"
 #include "rigid_body_lesson1.cpp"
+#include "rigid_body_collision_lesson2.cpp"
 
 //
 // NOTE: Demo Code
@@ -145,9 +146,6 @@ DEMO_INIT(Init)
         VkDescriptorBufferWrite(&RenderState->DescriptorManager, Scene->SceneDescriptor, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, Scene->SceneBuffer);
         VkDescriptorBufferWrite(&RenderState->DescriptorManager, Scene->SceneDescriptor, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, Scene->OpaqueInstanceBuffer);
     }
-
-    DemoState->ParticleSimL1 = ParticleSimL1Init(&DemoState->Arena);
-    DemoState->RigidBodySimL1 = RigidBodySimL1Init(&DemoState->Arena);
     
     // NOTE: Create render data
     {
@@ -216,6 +214,10 @@ DEMO_INIT(Init)
     VkCommandsBegin(Commands, RenderState->Device);
     {
         render_scene* Scene = &DemoState->Scene;
+
+        DemoState->ParticleSimL1 = ParticleSimL1Init(&DemoState->Arena);
+        DemoState->RigidBodySimL1 = RigidBodySimL1Init(&DemoState->Arena);
+        DemoState->RigidBodySimL2 = RigidBodySimL2Init(&DemoState->Arena, Scene);
         
         // NOTE: Push textures
         vk_image WhiteTexture = {};
@@ -386,7 +388,8 @@ DEMO_MAIN_LOOP(MainLoop)
             // NOTE: Populate scene
             {
                 //ParticleSimUpdate(&DemoState->ParticleSimL1, FrameTime, Scene);
-                RigidBodySimUpdate(&DemoState->RigidBodySimL1, FrameTime, Scene);
+                //RigidBodySimUpdate(&DemoState->RigidBodySimL1, FrameTime, Scene);
+                RigidBodySimUpdate(&DemoState->RigidBodySimL2, FrameTime, Scene);
                 
                 {
                     CPU_TIMED_BLOCK("Upload instances to GPU");
@@ -440,7 +443,7 @@ DEMO_MAIN_LOOP(MainLoop)
                 vkCmdBindVertexBuffers(Commands->Buffer, 0, 1, &CurrMesh->Buffer, &Offset);
 
                 // NOTE: Check how many instances share the same mesh
-                u32 NextInstanceId = 1;
+                u32 NextInstanceId = InstanceId + 1;
                 while (NextInstanceId < Scene->NumOpaqueInstances)
                 {
                     instance_entry* NextInstance = Scene->OpaqueInstances + NextInstanceId;

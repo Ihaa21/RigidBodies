@@ -53,6 +53,7 @@ inline b32 Gjk2d(void* GeometryA, transform_2d TransformA, gjk_support_l2* Suppo
                  void* GeometryB, transform_2d TransformB, gjk_support_l2* SupportB)
 {
     // NOTE: https://www.youtube.com/watch?v=Qupqu1xe7Io&ab_channel=CaseyMuratori
+    // NOTE: https://www.youtube.com/watch?v=ajv46BSqcK4&ab_channel=Reducible (secondary, first one is better for code IMO)
     
     b32 Result = false;
 
@@ -181,6 +182,9 @@ inline b32 Gjk2d(void* GeometryA, transform_2d TransformA, gjk_support_l2* Suppo
             } break;
         }
     }
+
+    // NOTE: Begin EPA algorithm, expand our simplex until we found penetration depth
+    // TODO: Implement
 
     return Result;
 }

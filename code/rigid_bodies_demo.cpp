@@ -81,6 +81,7 @@ DEMO_INIT(Init)
         *ProfilerState = {};
         DemoState->Arena = Arena;
         DemoState->TempArena = LinearSubArena(&DemoState->Arena, MegaBytes(10));
+        DemoState->PlatformBlockArena = PlatformBlockArenaCreate(KiloBytes(64), 16);
     }
 
     ProfilerStateCreate(ProfilerFlag_OutputCsv | ProfilerFlag_AutoSetEndOfFrame);
@@ -100,7 +101,7 @@ DEMO_INIT(Init)
             InitParams.GpuLocalSize = MegaBytes(10);
             InitParams.DeviceExtensionCount = ArrayCount(DeviceExtensions);
             InitParams.DeviceExtensions = DeviceExtensions;
-            VkInit(VulkanLib, hInstance, WindowHandle, &DemoState->Arena, &DemoState->TempArena, InitParams);
+            VkInit(VulkanLib, hInstance, WindowHandle, &DemoState->Arena, &DemoState->TempArena, &DemoState->PlatformBlockArena, InitParams);
         }
     }
     
@@ -155,6 +156,9 @@ DEMO_INIT(Init)
         DemoState->RenderTargetArena = VkLinearArenaCreate(RenderState->Device, RenderState->LocalMemoryId, MegaBytes(100));
         DemoSwapChainChange(Width, Height);
 
+        DebugSetTargets(&DemoState->Arena, &DemoState->TempArena, &DemoState->SwapChainEntry, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                        &DemoState->DepthEntry, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+
         // NOTE: Forward Pass
         {
             render_target_builder Builder = RenderTargetBuilderBegin(&DemoState->Arena, &DemoState->TempArena, Width, Height);
@@ -166,7 +170,7 @@ DEMO_INIT(Init)
                                                     VK_ATTACHMENT_STORE_OP_STORE, VK_IMAGE_LAYOUT_UNDEFINED,
                                                     VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
             u32 DepthId = VkRenderPassAttachmentAdd(&RpBuilder, DemoState->DepthEntry.Format, VK_ATTACHMENT_LOAD_OP_CLEAR,
-                                                    VK_ATTACHMENT_STORE_OP_DONT_CARE, VK_IMAGE_LAYOUT_UNDEFINED,
+                                                    VK_ATTACHMENT_STORE_OP_STORE, VK_IMAGE_LAYOUT_UNDEFINED,
                                                     VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
 
             VkRenderPassSubPassBegin(&RpBuilder, VK_PIPELINE_BIND_POINT_GRAPHICS);
@@ -390,22 +394,23 @@ DEMO_MAIN_LOOP(MainLoop)
                 //ParticleSimUpdate(&DemoState->ParticleSimL1, FrameTime, Scene);
                 //RigidBodySimUpdate(&DemoState->RigidBodySimL1, FrameTime, Scene);
                 RigidBodySimUpdate(&DemoState->RigidBodySimL2, FrameTime, Scene);
-                
-                {
-                    CPU_TIMED_BLOCK("Upload instances to GPU");
-                    gpu_instance_entry* GpuData = VkCommandsPushWriteArray(Commands, Scene->OpaqueInstanceBuffer, gpu_instance_entry, Scene->NumOpaqueInstances,
-                                                                           BarrierMask(VkAccessFlagBits(0), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT),
-                                                                           BarrierMask(VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_VERTEX_SHADER_BIT));
-
-                    for (u32 InstanceId = 0; InstanceId < Scene->NumOpaqueInstances; ++InstanceId)
-                    {
-                        GpuData[InstanceId].WVTransform = Scene->OpaqueInstances[InstanceId].WVTransform;
-                        GpuData[InstanceId].WVPTransform = Scene->OpaqueInstances[InstanceId].WVPTransform;
-                        GpuData[InstanceId].Color = Scene->OpaqueInstances[InstanceId].Color;
-                    }
-                }
             }        
-        
+            
+            {
+                CPU_TIMED_BLOCK("Upload instances to GPU");
+                gpu_instance_entry* GpuData = VkCommandsPushWriteArray(Commands, Scene->OpaqueInstanceBuffer, gpu_instance_entry, Scene->NumOpaqueInstances,
+                                                                       BarrierMask(VkAccessFlagBits(0), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT),
+                                                                       BarrierMask(VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_VERTEX_SHADER_BIT));
+
+                for (u32 InstanceId = 0; InstanceId < Scene->NumOpaqueInstances; ++InstanceId)
+                {
+                    GpuData[InstanceId].WVTransform = Scene->OpaqueInstances[InstanceId].WVTransform;
+                    GpuData[InstanceId].WVPTransform = Scene->OpaqueInstances[InstanceId].WVPTransform;
+                    GpuData[InstanceId].Color = Scene->OpaqueInstances[InstanceId].Color;
+                }
+            }
+
+            
             {
                 scene_globals* Data = VkCommandsPushWriteStruct(Commands, Scene->SceneBuffer, scene_globals,
                                                                 BarrierMask(VkAccessFlagBits(0), VK_PIPELINE_STAGE_ALL_COMMANDS_BIT),
@@ -414,6 +419,8 @@ DEMO_MAIN_LOOP(MainLoop)
                 Data->CameraPos = Scene->Camera.Pos;
             }
 
+            DebugGpuUpload(Commands, CameraGetVP(&Scene->Camera));
+            
             VkCommandsTransferFlush(Commands, RenderState->Device);
         }
 
@@ -460,7 +467,10 @@ DEMO_MAIN_LOOP(MainLoop)
                 InstanceId = NextInstanceId;
             }
         }
-        RenderTargetPassEnd(Commands);        
+        RenderTargetPassEnd(Commands);
+
+        DebugRender(Commands, &DemoState->TempArena);
+        
         UiStateRender(&DemoState->UiState, RenderState->Device, Commands, DemoState->SwapChainEntry.View);
 
         VkCommandsEnd(Commands, RenderState->Device);

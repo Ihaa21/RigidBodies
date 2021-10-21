@@ -24,6 +24,7 @@ inline rigid_body_sim_l1 RigidBodySimL1Init(linear_arena* Arena)
 
 inline f32 RigidBodyComputeTorqueL1(v2 Force, v2 OffsetPoint)
 {
+    // NOTE: Cross product in 3d
     f32 Result = OffsetPoint.x * Force.y - OffsetPoint.y * Force.x;;
     return Result;
 }

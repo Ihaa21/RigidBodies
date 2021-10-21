@@ -1,6 +1,6 @@
 #pragma once
 
-//#define VALIDATION 1
+#define VALIDATION 1
 
 #include "framework_vulkan\framework_vulkan.h"
 
@@ -9,9 +9,12 @@
 //#define X86_PROFILING
 #include "profiling\profiling.h"
 
+#include "gjk_collision.h"
 #include "rigid_body_particle_lesson1.h"
 #include "rigid_body_lesson1.h"
 #include "rigid_body_collision_lesson2.h"
+#include "rigid_body_particle_lesson3.h"
+#include "rigid_body_collision_lesson3.h"
 
 //
 // NOTE: Render Data
@@ -94,6 +97,8 @@ struct demo_state
     particle_sim_l1 ParticleSimL1;
     rigid_body_sim_l1 RigidBodySimL1;
     rigid_body_sim_l2 RigidBodySimL2;
+    particle_sim_l3 ParticleSimL3;
+    rigid_body_sim_l3 RigidBodySimL3;
 };
 
 global demo_state* DemoState;

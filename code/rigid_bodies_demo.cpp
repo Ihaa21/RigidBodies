@@ -43,9 +43,12 @@ inline void SceneOpaqueInstanceAdd(render_scene* Scene, u32 MeshId, m4 WTransfor
     Instance->Color = Color;
 }
 
+#include "gjk_collision.cpp"
 #include "rigid_body_particle_lesson1.cpp"
 #include "rigid_body_lesson1.cpp"
 #include "rigid_body_collision_lesson2.cpp"
+#include "rigid_body_particle_lesson3.cpp"
+#include "rigid_body_collision_lesson3.cpp"
 
 //
 // NOTE: Demo Code
@@ -222,6 +225,8 @@ DEMO_INIT(Init)
         DemoState->ParticleSimL1 = ParticleSimL1Init(&DemoState->Arena);
         DemoState->RigidBodySimL1 = RigidBodySimL1Init(&DemoState->Arena);
         DemoState->RigidBodySimL2 = RigidBodySimL2Init(&DemoState->Arena, Scene);
+        DemoState->ParticleSimL3 = ParticleSimL3Init(&DemoState->Arena);
+        DemoState->RigidBodySimL3 = RigidBodySimL3Init(&DemoState->Arena, Scene);
         
         // NOTE: Push textures
         vk_image WhiteTexture = {};
@@ -394,8 +399,11 @@ DEMO_MAIN_LOOP(MainLoop)
                 //ParticleSimUpdate(&DemoState->ParticleSimL1, FrameTime, Scene);
                 //RigidBodySimUpdate(&DemoState->RigidBodySimL1, FrameTime, Scene);
                 RigidBodySimUpdate(&DemoState->RigidBodySimL2, FrameTime, Scene);
-            }        
-            
+                //ParticleSimUpdate(&DemoState->ParticleSimL3, FrameTime, Scene);
+                //RigidBodySimUpdate(&DemoState->RigidBodySimL3, FrameTime, Scene);
+            }
+
+            if (Scene->NumOpaqueInstances > 0)
             {
                 CPU_TIMED_BLOCK("Upload instances to GPU");
                 gpu_instance_entry* GpuData = VkCommandsPushWriteArray(Commands, Scene->OpaqueInstanceBuffer, gpu_instance_entry, Scene->NumOpaqueInstances,

@@ -8,24 +8,6 @@
   
  */
 
-struct circle_2d
-{
-    f32 Radius;
-};
-
-struct polygon_2d
-{
-    u32 NumVertices;
-    u32 MeshId;
-    v2* Vertices;
-};
-
-struct transform_2d
-{
-    v2 Pos;
-    f32 Rotation;
-};
-
 enum rigid_body_type_l2
 {
     RigidBodyTypeL2_None,

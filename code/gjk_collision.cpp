@@ -328,7 +328,7 @@ inline gjk_result_2d Gjk2d(void* GeometryA, v2 PosA, f32 AngleA, gjk_support_l2*
             }
 #endif
             
-            if (SupportPointDistance - DistanceToOrigin < 0.001f || EpaNumPoints >= ArrayCount(EpaPoints))
+            if (SupportPointDistance - DistanceToOrigin < 0.000000001f || EpaNumPoints >= ArrayCount(EpaPoints))
             {
                 // NOTE: http://allenchou.net/2013/12/game-physics-contact-generation-epa/
                 // NOTE: Our collision points lie on the nearest edge so we interpole the value of that point based on the
@@ -347,8 +347,8 @@ inline gjk_result_2d Gjk2d(void* GeometryA, v2 PosA, f32 AngleA, gjk_support_l2*
                 DebugPushPoint(EpaGeoAPoints[ClosestEdgeId + 0], V4(0.5f, 0.5f, 0.5f, 1.0f));
                 DebugPushPoint(EpaGeoAPoints[ClosestEdgeId + 1], V4(0.5f, 0.5f, 0.5f, 1.0f));
 
-                DebugPushPoint(EpaGeoBPoints[ClosestEdgeId + 0], V4(0.5f, 0.5f, 0.5f, 1.0f));
-                DebugPushPoint(EpaGeoBPoints[ClosestEdgeId + 1], V4(0.5f, 0.5f, 0.5f, 1.0f));
+                DebugPushPoint(-(EpaPoints[ClosestEdgeId + 0] - EpaGeoAPoints[ClosestEdgeId + 0]), V4(0.5f, 0.5f, 0.5f, 1.0f));
+                DebugPushPoint(-(EpaPoints[ClosestEdgeId + 1] - EpaGeoAPoints[ClosestEdgeId + 1]), V4(0.5f, 0.5f, 0.5f, 1.0f));
 
                 for (u32 EpaPointId = 0; EpaPointId < EpaNumPoints - 1; ++EpaPointId)
                 {
@@ -359,7 +359,6 @@ inline gjk_result_2d Gjk2d(void* GeometryA, v2 PosA, f32 AngleA, gjk_support_l2*
                 DebugPushLine(V2(0), DirectionToEdge, V4(1.0f, 0.5f, 0.2f, 1.0f));
 #endif                
                 Result.ContactPoint1 = Lerp(EpaGeoAPoints[ClosestEdgeId + 0], EpaGeoAPoints[ClosestEdgeId + 1], ClosestEdgeT);
-                //Result.ContactPoint2 = Lerp(EpaGeoBPoints[ClosestEdgeId + 0], EpaGeoBPoints[ClosestEdgeId + 1], ClosestEdgeT);
                 Result.ContactPoint2 = Lerp(-(EpaPoints[ClosestEdgeId + 0] - EpaGeoAPoints[ClosestEdgeId + 0]),
                                             -(EpaPoints[ClosestEdgeId + 1] - EpaGeoAPoints[ClosestEdgeId + 1]), ClosestEdgeT);
                 Result.Normal = EdgeNormal;
@@ -396,8 +395,9 @@ inline gjk_result_2d Gjk2d(void* GeometryA, v2 PosA, f32 AngleA, gjk_support_l2*
                 
                 for (u32 EpaPointId = 0; EpaPointId < EpaNumPoints - 1; ++EpaPointId)
                 {
-                    DebugPushPoint(EpaGeoAPoints[EpaPointId], V4(0, 0, 1, 1));
-                    DebugPushPoint(EpaGeoBPoints[EpaPointId], V4(0, 0, 1, 1));
+                    DebugPushLine(EpaGeoAPoints[EpaPointId + 0], EpaGeoAPoints[EpaPointId + 1], V4(0, 0, 1, 1));
+                    DebugPushLine(-(EpaPoints[EpaPointId + 0] - EpaGeoAPoints[EpaPointId + 0]),
+                                   -(EpaPoints[EpaPointId + 1] - EpaGeoAPoints[EpaPointId + 1]), V4(0, 0, 1, 1));
                 }
             }
 #endif

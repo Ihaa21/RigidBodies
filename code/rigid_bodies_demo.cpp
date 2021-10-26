@@ -120,7 +120,7 @@ DEMO_INIT(Init)
     {
         render_scene* Scene = &DemoState->Scene;
 
-        Scene->Camera = CameraFlatCreate(V3(0, 0, 0), 4.0f, 2.0f, 1.0f, -1.0f, 1.0f);
+        Scene->Camera = CameraFlatCreate(V3(0, 0, 0), 4.0f, 2.0f, 0.05f, -1.0f, 1.0f);
 
         Scene->SceneBuffer = VkBufferCreate(RenderState->Device, &RenderState->GpuArena,
                                             VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
@@ -398,9 +398,9 @@ DEMO_MAIN_LOOP(MainLoop)
             {
                 //ParticleSimUpdate(&DemoState->ParticleSimL1, FrameTime, Scene);
                 //RigidBodySimUpdate(&DemoState->RigidBodySimL1, FrameTime, Scene);
-                RigidBodySimUpdate(&DemoState->RigidBodySimL2, FrameTime, Scene);
+                //RigidBodySimUpdate(&DemoState->RigidBodySimL2, FrameTime, Scene);
                 //ParticleSimUpdate(&DemoState->ParticleSimL3, FrameTime, Scene);
-                //RigidBodySimUpdate(&DemoState->RigidBodySimL3, FrameTime, Scene);
+                RigidBodySimUpdate(&DemoState->RigidBodySimL3, FrameTime, Scene);
             }
 
             if (Scene->NumOpaqueInstances > 0)

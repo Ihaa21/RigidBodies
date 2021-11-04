@@ -19,7 +19,8 @@ inline collision_result_l3 CircleCollision(v2 PosA, f32 RadiusA, v2 PosB, f32 Ra
         Result.Normal = DistVec / Dist;
         // NOTE: https://github.com/granj2020/Cirobb-Engine/blob/master/cirobb/Collision.cpp
         // NOTE: Instead of 2 contact points, we generate a single center one
-        Result.ContactPoint = PosA + Result.Normal * (RadiusA - RadiusB + Dist) * 0.5f;
+        Result.ContactPoint1 = PosA + Result.Normal * RadiusA;
+        Result.ContactPoint2 = PosB - Result.Normal * RadiusB;
     }
 
     return Result;
@@ -28,7 +29,8 @@ inline collision_result_l3 CircleCollision(v2 PosA, f32 RadiusA, v2 PosB, f32 Ra
 inline collision_result_l3 CircleToOBB(v2 CirclePos, f32 CircleRadius, v2 BoxPos, v2 BoxDim)
 {
     collision_result_l3 Result = {};
-    
+
+#if 0
     v2 Distance = CirclePos - BoxPos;
     v2 localSpace = Distance;
     v2 BoxRadius = BoxDim * 0.5f;
@@ -64,7 +66,8 @@ inline collision_result_l3 CircleToOBB(v2 CirclePos, f32 CircleRadius, v2 BoxPos
     Result.Collides = true;
     Result.Depth = magnitude - CircleRadius;
     Result.ContactPoint = CirclePos + Result.Normal * magnitude;
-
+#endif
+    
     return Result;
 }
 
@@ -193,7 +196,7 @@ inline constraint_penetration_l3* ConstraintHashTableAdd(constraint_hashtable* T
         // TODO: Resize the hashtable
         InvalidCodePath;
     }
-
+    
     return Result;
 }
 
@@ -226,16 +229,22 @@ inline void PenetrationConstrantL3Create(rigid_body_sim_l3* Sim, u32 FirstBodyId
 {
     // NOTE: Search if we have this contact from the previous frame
     constraint_penetration_l3* PrevConstraint = 0;
+
+    f32 PersistentThresholdSq = 0.005f;
     
 #if LESSON3_USE_HASHTABLE
 
-    //PrevConstraint = ConstraintHashTableGet(&Sim->PrevPenetrationConstraintTable, FirstBodyId, SecondBodyId);
+    PrevConstraint = ConstraintHashTableGet(&Sim->PrevPenetrationConstraintTable, FirstBodyId, SecondBodyId);
     constraint_penetration_l3* Result = ConstraintHashTableAdd(&Sim->PenetrationConstraintTable, FirstBodyId, SecondBodyId);
 #if LESSON3_USE_WARMSTART
-    if (!(PrevConstraint && PrevConstraint->FirstBodyId == FirstBodyId && PrevConstraint->SecondBodyId == SecondBodyId &&
-          LengthSquared(PrevConstraint->ContactPoint - ContactPoint) < Square(0.01f)))
+    if (PrevConstraint && PrevConstraint->FirstBodyId == FirstBodyId && PrevConstraint->SecondBodyId == SecondBodyId)
     {
-        Result = 0;
+        f32 LengthSquared1 = LengthSquared(PrevConstraint->ContactPoint1 - ContactPoint1);
+        f32 LengthSquared2 = LengthSquared(PrevConstraint->ContactPoint2 - ContactPoint2);
+        if (Lerp(LengthSquared1, LengthSquared2, 0.5f) < PersistentThresholdSq)
+        {
+            PrevConstraint = 0;
+        }
     }
 #endif
     
@@ -245,8 +254,10 @@ inline void PenetrationConstrantL3Create(rigid_body_sim_l3* Sim, u32 FirstBodyId
     for (u32 ContactId = 0; ContactId < Sim->PrevNumPenetrationConstraints; ++ContactId)
     {
         constraint_penetration_l3* CurrContact = Sim->PrevPenetrationConstraintArray + ContactId;
+        f32 LengthSquared1 = LengthSquared(CurrContact->ContactPoint1 - ContactPoint1);
+        f32 LengthSquared2 = LengthSquared(CurrContact->ContactPoint2 - ContactPoint2);
         if (CurrContact->FirstBodyId == FirstBodyId && CurrContact->SecondBodyId == SecondBodyId &&
-            LengthSquared(CurrContact->ContactPoint1 - ContactPoint1) < 0.005f)
+            Lerp(LengthSquared1, LengthSquared2, 0.5f) < PersistentThresholdSq)
         {
             PrevConstraint = CurrContact;
             break;
@@ -259,23 +270,17 @@ inline void PenetrationConstrantL3Create(rigid_body_sim_l3* Sim, u32 FirstBodyId
     
 #endif
 
+    *Result = {};
+    Result->FirstBodyId = FirstBodyId;
+    Result->SecondBodyId = SecondBodyId;
+    Result->ContactPoint1 = ContactPoint1;
+    Result->ContactPoint2 = ContactPoint2;
+    Result->Normal = Normal;
+    Result->Depth = Depth;
+    
     if (PrevConstraint)
     {
-        *Result = *PrevConstraint;
-        Result->ContactPoint1 = ContactPoint1;
-        Result->ContactPoint2 = ContactPoint2;
-        Result->Normal = Normal;
-        Result->Depth = Depth;
-    }
-    else
-    {
-        *Result = {};
-        Result->FirstBodyId = FirstBodyId;
-        Result->SecondBodyId = SecondBodyId;
-        Result->ContactPoint1 = ContactPoint1;
-        Result->ContactPoint2 = ContactPoint2;
-        Result->Normal = Normal;
-        Result->Depth = Depth;
+        Result->AccumImpulse = PrevConstraint->AccumImpulse;
     }
 }
 
@@ -332,6 +337,35 @@ inline rigid_body_sim_l3 RigidBodySimL3Init(linear_arena* Arena, render_scene* S
             
         }
 #endif
+
+#if 0
+        // NOTE: Stack of falling circles
+        {
+            Result.ApplyGravity = true;
+
+            RigidBodyL3CircleCreate(&Result, V2(0.0f, -2.0f), V2(0, 0), 0.0f, 0.0f, 0.0f, 0.25f);
+            RigidBodyL3CircleCreate(&Result, V2(0.0f, -1.0f), V2(0, 0), 0.0f, 0.0f, 1.0f / 5.0f, 0.25f);
+            RigidBodyL3CircleCreate(&Result, V2(0.0f, -0.0f), V2(0, 0), 0.0f, 0.0f, 1.0f / 5.0f, 0.25f);
+            
+        }
+#endif
+
+#if 0
+        // NOTE: Colliding Multi Body
+        {
+            Result.ApplyGravity = true;
+
+            f32 AreaWidth = 4.0f;
+            RigidBodyL3RectCreate(&Result, Arena, Scene, V2(0.0f, -2.0f), V2(0, 0), 0.0f, 0.0f, 0.0f, V2(100.0f, 0.5f));
+            RigidBodyL3RectCreate(&Result, Arena, Scene, V2(0.5f * AreaWidth + 0.5f, -2.0f), V2(0, 0), 0.0f, 0.0f, 0.0f, V2(0.5f, 160.0f));
+            RigidBodyL3RectCreate(&Result, Arena, Scene, V2(-0.5f * AreaWidth - 0.5f, -2.0f), V2(0, 0), 0.0f, 0.0f, 0.0f, V2(0.5f, 160.0f));
+
+            RigidBodyL3CircleCreate(&Result, V2(0.0f, 0.0f), V2(0, 0), 0.0f, 0.0f, 1.0f / 5.0f, 0.25f);
+            RigidBodyL3CircleCreate(&Result, V2(0.01f, 0.0f), V2(0, 0), 0.0f, 0.0f, 1.0f / 5.0f, 0.25f);
+            RigidBodyL3CircleCreate(&Result, V2(0.0f, 0.01f), V2(0, 0), 0.0f, 0.0f, 1.0f / 5.0f, 0.25f);
+            
+        }
+#endif
         
 #if 1
         // NOTE: Falling circles on a ground 1
@@ -342,19 +376,13 @@ inline rigid_body_sim_l3 RigidBodySimL3Init(linear_arena* Arena, render_scene* S
             RigidBodyL3RectCreate(&Result, Arena, Scene, V2(0.0f, -2.0f), V2(0, 0), 0.0f, 0.0f, 0.0f, V2(100.0f, 0.5f));
             RigidBodyL3RectCreate(&Result, Arena, Scene, V2(0.5f * AreaWidth + 0.5f, -2.0f), V2(0, 0), 0.0f, 0.0f, 0.0f, V2(0.5f, 160.0f));
             RigidBodyL3RectCreate(&Result, Arena, Scene, V2(-0.5f * AreaWidth - 0.5f, -2.0f), V2(0, 0), 0.0f, 0.0f, 0.0f, V2(0.5f, 160.0f));
-            
-            // NOTE: Falling bodies
-            //RigidBodyL3CircleCreate(&Result, V2(-0.6f, 0.0f), V2(0, 0), 0.0f, 0.0f, 1.0f / 105.0f, 0.15f);
-            //RigidBodyL3CircleCreate(&Result, V2(-0.6f, -2.0f + 0.15f + 0.25f - 0.01f), V2(0.0f, -0.25f), 0.0f, 0.0f, 1.0f / 105.0f, 0.15f);
-            //RigidBodyL3CircleCreate(&Result, V2(0.0f, 0.0f), V2(0, 0), 0.0f, 0.0f, 1.0f / 25.0f, 0.25f);
-            //RigidBodyL3CircleCreate(&Result, V2(0.6f, 0.0f), V2(0, 0), 0.0f, 0.0f, 1.0f / 25.0f, 0.25f);
 
             u32 NumCircles = 40;
             for (u32 CircleId = 0; CircleId < NumCircles; ++CircleId)
             {
                 v2 Pos = V2(0.5f * AreaWidth * (2.0f * RandFloat() - 1.0f), 3.0f * RandFloat());
                 f32 Radius = RandFloat() * 0.5f;
-                RigidBodyL3CircleCreate(&Result, Pos, V2(0, 0), 0.0f, 0.0f, 1.0f / 4.0f, Radius);
+                RigidBodyL3CircleCreate(&Result, Pos, V2(0.0f, -20.0f * RandFloat()), 0.0f, 0.0f, 1.0f / 4.0f, Radius);
             }
         }
 #endif
@@ -369,7 +397,7 @@ inline rigid_body_sim_l3 RigidBodySimL3Init(linear_arena* Arena, render_scene* S
             RigidBodyL3RectCreate(&Result, Arena, Scene, V2(0.5f * AreaWidth + 0.5f, -2.0f), V2(0, 0), 0.0f, 0.0f, 0.0f, V2(0.5f, 160.0f));
             RigidBodyL3RectCreate(&Result, Arena, Scene, V2(-0.5f * AreaWidth - 0.5f, -2.0f), V2(0, 0), 0.0f, 0.0f, 0.0f, V2(0.5f, 160.0f));
      
-            u32 NumCircles = 3;
+            u32 NumCircles = 5;
             for (u32 CircleId = 0; CircleId < NumCircles; ++CircleId)
             {
                 v2 Pos = V2(0.5f * AreaWidth * (2.0f * RandFloat() - 1.0f), 3.0f * RandFloat());
@@ -395,6 +423,21 @@ inline rigid_body_sim_l3 RigidBodySimL3Init(linear_arena* Arena, render_scene* S
             RigidBodyL3CircleCreate(&Result, V2(0.0f, 4.0f), V2(0, 0), 0.0f, 0.0f, 1.0f / 4.0f, Radius);
         }
 #endif
+   
+#if 0
+        // NOTE: Falling circles on a ground 4
+        {
+            f32 AreaWidth = 2.0f;
+            
+            Result.ApplyGravity = true;
+            RigidBodyL3RectCreate(&Result, Arena, Scene, V2(0.0f, -2.0f), V2(0, 0), 0.0f, 0.0f, 0.0f, V2(100.0f, 0.5f));
+            RigidBodyL3RectCreate(&Result, Arena, Scene, V2(0.5f * AreaWidth + 0.5f, -2.0f), V2(0, 0), 0.0f, 0.0f, 0.0f, V2(0.5f, 160.0f));
+            RigidBodyL3RectCreate(&Result, Arena, Scene, V2(-0.5f * AreaWidth - 0.5f, -2.0f), V2(0, 0), 0.0f, 0.0f, 0.0f, V2(0.5f, 160.0f));
+
+            f32 Radius = 0.25f;
+            RigidBodyL3CircleCreate(&Result, V2(0.0f, 2.0f), V2(0, 0), 0.0f, 0.0f, 1.0f / 4.0f, Radius);
+        }
+#endif
     }
     
     return Result;
@@ -407,7 +450,10 @@ inline f32 RigidBodyComputeTorqueL3(v2 Force, v2 OffsetPoint)
 }
 
 inline void RigidBodySimUpdate(rigid_body_sim_l3* Sim, f32 FrameTime, render_scene* Scene)
-{    
+{
+    // TODO: REMOVE
+    int k = 0;
+    
 #if 1
     // NOTE: Integrate forces to get velocities
     for (u32 CurrBodyId = 0; CurrBodyId < Sim->NumRigidBodies; ++CurrBodyId)
@@ -426,7 +472,7 @@ inline void RigidBodySimUpdate(rigid_body_sim_l3* Sim, f32 FrameTime, render_sce
 
         // NOTE: Damping
         //CurrBody->Vel *= Pow(0.97f, 0.4f);
-        CurrBody->AngleVel *= Pow(0.97f, 0.4f);
+        //CurrBody->AngleVel *= Pow(0.97f, 0.4f);
     }
 #endif
     
@@ -443,26 +489,43 @@ inline void RigidBodySimUpdate(rigid_body_sim_l3* Sim, f32 FrameTime, render_sce
             {     
 #if LESSON3_USE_GJK
 
-                gjk_support_l2* SupportA = CurrBody->Type == RigidBodyTypeL2_Circle ? SupportCircle2d : SupportConvexPolygon2d;
-                gjk_support_l2* SupportB = OtherBody->Type == RigidBodyTypeL2_Circle ? SupportCircle2d : SupportConvexPolygon2d;
-
-                void* GeometryA = CurrBody->Type == RigidBodyTypeL2_Circle ? (void*)&CurrBody->Circle : (void*)&CurrBody->Polygon;
-                void* GeometryB = OtherBody->Type == RigidBodyTypeL2_Circle ? (void*)&OtherBody->Circle : (void*)&OtherBody->Polygon;
-
-                gjk_result_2d CollisionResult = Gjk2d(GeometryA, CurrBody->Pos, CurrBody->Angle, SupportA,
-                                                      GeometryB, OtherBody->Pos, OtherBody->Angle, SupportB);
-
-                if (CollisionResult.Intersects)
+#if 0
+                if (CurrBody->Type == RigidBodyTypeL3_Circle && OtherBody->Type == RigidBodyTypeL3_Circle)
                 {
-                    DebugPushPoint(CollisionResult.ContactPoint1, V4(1, 0, 1, 1));
-                    DebugPushPoint(CollisionResult.ContactPoint2, V4(1, 0, 1, 1));
-                    PenetrationConstrantL3Create(Sim, CurrBodyId, OtherBodyId, CollisionResult.ContactPoint1,
-                                                 CollisionResult.ContactPoint2, CollisionResult.Normal, -CollisionResult.Distance);
+                    collision_result_l3 CollisionResult = CircleCollision(CurrBody->Pos, CurrBody->Circle.Radius, OtherBody->Pos, OtherBody->Circle.Radius);
 
-                    if (CurrBody->Type == RigidBodyTypeL3_Circle && OtherBody->Type == RigidBodyTypeL3_Circle)
+                    if (CollisionResult.Collides)
                     {
-                        // NOTE: Draw normals
-                        DebugPushLine(CurrBody->Pos, CurrBody->Pos + 5.0f * CollisionResult.Distance* CollisionResult.Normal, V4(0, 0, 0, 1));
+                        DebugPushPoint(CollisionResult.ContactPoint1, V4(1, 0, 1, 1));
+                        DebugPushPoint(CollisionResult.ContactPoint2, V4(1, 0, 1, 1));
+                        PenetrationConstrantL3Create(Sim, CurrBodyId, OtherBodyId, CollisionResult.ContactPoint1,
+                                                     CollisionResult.ContactPoint2, CollisionResult.Normal, -CollisionResult.Depth);
+                    }
+                }
+                else
+#endif
+                {
+                    gjk_support_l2* SupportA = CurrBody->Type == RigidBodyTypeL2_Circle ? SupportCircle2d : SupportConvexPolygon2d;
+                    gjk_support_l2* SupportB = OtherBody->Type == RigidBodyTypeL2_Circle ? SupportCircle2d : SupportConvexPolygon2d;
+
+                    void* GeometryA = CurrBody->Type == RigidBodyTypeL2_Circle ? (void*)&CurrBody->Circle : (void*)&CurrBody->Polygon;
+                    void* GeometryB = OtherBody->Type == RigidBodyTypeL2_Circle ? (void*)&OtherBody->Circle : (void*)&OtherBody->Polygon;
+
+                    gjk_result_2d CollisionResult = Gjk2d(GeometryA, CurrBody->Pos, CurrBody->Angle, SupportA,
+                                                          GeometryB, OtherBody->Pos, OtherBody->Angle, SupportB);
+
+                    if (CollisionResult.Intersects)
+                    {
+                        DebugPushPoint(CollisionResult.ContactPoint1, V4(1, 0, 1, 1));
+                        DebugPushPoint(CollisionResult.ContactPoint2, V4(1, 0, 1, 1));
+                        PenetrationConstrantL3Create(Sim, CurrBodyId, OtherBodyId, CollisionResult.ContactPoint1,
+                                                     CollisionResult.ContactPoint2, CollisionResult.Normal, -CollisionResult.Distance);
+
+                        if (CurrBody->Type == RigidBodyTypeL3_Circle && OtherBody->Type == RigidBodyTypeL3_Circle)
+                        {
+                            // NOTE: Draw normals
+                            //DebugPushLine(CurrBody->Pos, CurrBody->Pos + 5.0f * CollisionResult.Distance* CollisionResult.Normal, V4(0, 0, 0, 1));
+                        }
                     }
                 }
                 
@@ -516,7 +579,7 @@ inline void RigidBodySimUpdate(rigid_body_sim_l3* Sim, f32 FrameTime, render_sce
     {
         // TODO: Add friction
         
-        // NOTE: Prestep, calculate constants that don't depend on each iteration and apply warm starting
+        // NOTE: Prestep, calculate constants that don't depend on each iteration
 #if LESSON3_USE_HASHTABLE
         constraint_hashtable* ConstraintTable = &Sim->PenetrationConstraintTable;
         for (u32 CurrConstraintId = 0; CurrConstraintId < ConstraintTable->MaxNumElements; ++CurrConstraintId)
@@ -563,28 +626,14 @@ inline void RigidBodySimUpdate(rigid_body_sim_l3* Sim, f32 FrameTime, render_sce
             v2 Jq2Vec = (BodyB->Vel + Cross(V3(0.0f, 0.0f, BodyB->AngleVel), V3(RB, 0.0f)).xy -
                          BodyA->Vel - Cross(V3(0.0f, 0.0f, BodyA->AngleVel), V3(RA, 0.0f)).xy);
             f32 Jq2 = Dot(Jq2Vec, Constraint->Normal);
-            f32 ResitutionCoeff = Max(BodyA->RestitutionCoeff, BodyB->RestitutionCoeff);
-            Constraint->Restitution = Jq2 < -1.0f ? Jq2 * ResitutionCoeff : 0.0f;
+            f32 RestitutionCoeff = Max(BodyA->RestitutionCoeff, BodyB->RestitutionCoeff);
+            f32 RestitutionSlop = 1.0f;
+            Constraint->Restitution = Jq2 < -RestitutionSlop ? Jq2 * RestitutionCoeff : 0.0f;
 
             // NOTE: Calculate position bias
             f32 BiasSlop = 0.004f;
             f32 BiasFactor = 0.1f;
             Constraint->Bias = Min(0.0f, Constraint->Depth + BiasSlop) * BiasFactor / FrameTime;
-
-            // NOTE: Warm starting
-            if (Constraint->AccumImpulse != 0.0f)
-            {
-                v2 ApplyImpulse = Constraint->AccumImpulse * Constraint->Normal;
-                
-                BodyA->Vel -= ApplyImpulse * BodyA->InvMass;
-                BodyB->Vel += ApplyImpulse * BodyB->InvMass;
-
-                v2 AngleChange1 = Cross(V3(RA, 0.0f), V3(ApplyImpulse, 0.0f)).xy * BodyA->InvInertia;
-                v2 AngleChange2 = Cross(V3(RB, 0.0f), V3(ApplyImpulse, 0.0f)).xy * BodyB->InvInertia;
-                
-                BodyA->AngleVel -= AngleChange1;
-                BodyB->AngleVel += AngleChange2;
-            }
 
 #else
             
@@ -606,8 +655,47 @@ inline void RigidBodySimUpdate(rigid_body_sim_l3* Sim, f32 FrameTime, render_sce
             f32 BiasSlop = 0.004f;
             f32 BiasFactor = 0.1f;
             Constraint->Bias = Min(0.0f, Constraint->Depth + BiasSlop) * BiasFactor / FrameTime;
+#endif
+        }
+
+        // NOTE: Apply warm starting
+#if LESSON3_USE_HASHTABLE
+        for (u32 CurrConstraintId = 0; CurrConstraintId < ConstraintTable->MaxNumElements; ++CurrConstraintId)
+        {
+            if (ConstraintTable->Keys[CurrConstraintId] == 0)
+            {
+                continue;
+            }
+            
+            constraint_penetration_l3* Constraint = ConstraintTable->Values + CurrConstraintId;
+
+#else
+        for (u32 CurrConstraintId = 0; CurrConstraintId < Sim->NumPenetrationConstraints; ++CurrConstraintId)
+        {
+            constraint_penetration_l3* Constraint = Sim->PenetrationConstraintArray + CurrConstraintId;
+#endif
+            rigid_body_l3* BodyA = Sim->RigidBodyArray + Constraint->FirstBodyId;
+            rigid_body_l3* BodyB = Sim->RigidBodyArray + Constraint->SecondBodyId;
+
+            v2 RA = Constraint->ContactPoint1 - BodyA->Pos;
+            v2 RB = Constraint->ContactPoint2 - BodyB->Pos;
 
             // NOTE: Warm starting
+#if LESSON3_USE_DERIVED_MATH
+            if (Constraint->AccumImpulse != 0.0f)
+            {
+                v2 ApplyImpulse = Constraint->AccumImpulse * Constraint->Normal;
+                
+                BodyA->Vel -= ApplyImpulse * BodyA->InvMass;
+                BodyB->Vel += ApplyImpulse * BodyB->InvMass;
+
+                v2 AngleChange1 = Cross(V3(RA, 0.0f), V3(ApplyImpulse, 0.0f)).xy * BodyA->InvInertia;
+                v2 AngleChange2 = Cross(V3(RB, 0.0f), V3(ApplyImpulse, 0.0f)).xy * BodyB->InvInertia;
+                
+                BodyA->AngleVel -= AngleChange1;
+                BodyB->AngleVel += AngleChange2;
+            }
+#else
             if (Constraint->AccumImpulse != 0.0f)
             {
                 v2 ApplyImpulse = Constraint->AccumImpulse * Constraint->Normal;
@@ -617,10 +705,11 @@ inline void RigidBodySimUpdate(rigid_body_sim_l3* Sim, f32 FrameTime, render_sce
                 BodyA->AngleVel -= Cross(ApplyImpulse, RA) * BodyA->InvInertia;
                 BodyB->AngleVel += Cross(ApplyImpulse, RB) * BodyB->InvInertia;
             }
-
 #endif
+            
         }
         
+        // NOTE: Apply iterations
         for (u32 IterationId = 0; IterationId < 12; ++IterationId)
         {
 #if LESSON3_USE_HASHTABLE

@@ -23,8 +23,8 @@ struct gjk_result_2d
 
 #define GJK_VISUALIZE 0
 #define EPA_VISUALIZE 0
-#define EPA_ITERATION_ID 0
-#define EPA_VISUALIZE_FINAL 0
+#define EPA_ITERATION_ID -1
+#define EPA_VISUALIZE_FINAL 1
 #define EPA_MAX_ITERATIONS 16
 
 #define GJK_SUPPORT_L2(name) v2 name(v2 Dir, void* Geometry, v2 Pos, f32 Rotation)

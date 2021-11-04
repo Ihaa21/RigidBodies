@@ -16,7 +16,8 @@
 
 struct collision_result_l3
 {
-    v2 ContactPoint;
+    v2 ContactPoint1;
+    v2 ContactPoint2;
     v2 Normal;
     b32 Collides;
     f32 Depth;
@@ -81,7 +82,7 @@ struct constraint_hashtable
 #define LESSON3_USE_DERIVED_MATH 1
 #define LESSON3_USE_GJK 1
 #define LESSON3_USE_HASHTABLE 0
-#define LESSON3_USE_WARMSTART 0
+#define LESSON3_USE_WARMSTART 1
 
 #define LESSON3_VISUALIZE_VELOCITY 0
 

@@ -4,7 +4,7 @@ inline rigid_body_sim_l2 RigidBodySimL2Init(linear_arena* Arena, render_scene* S
     rigid_body_sim_l2 Result = {};
 
     // NOTE: GJK/EPA test case
-#if 1
+#if 0
     {
         Result.NumRigidBodies = 2;
         Result.RigidBodyArray = PushArray(Arena, rigid_body_l2, Result.NumRigidBodies);
@@ -29,6 +29,31 @@ inline rigid_body_sim_l2 RigidBodySimL2Init(linear_arena* Arena, render_scene* S
 
             CurrRigidBody->Type = RigidBodyTypeL2_Circle;
             CurrRigidBody->Circle.Radius = 0.5f;
+        }
+    }
+#endif
+
+    // NOTE: 2 Circle Intersection
+#if 1
+    {
+        Result.NumRigidBodies = 2;
+        Result.RigidBodyArray = PushArray(Arena, rigid_body_l2, Result.NumRigidBodies);
+
+        {
+            rigid_body_l2* CurrRigidBody = Result.RigidBodyArray + 0;
+            *CurrRigidBody = {};
+            CurrRigidBody->DistFromCenter = 0.01f; //0.01f;
+
+            CurrRigidBody->Type = RigidBodyTypeL2_Circle;
+            CurrRigidBody->Circle.Radius = 0.25f;
+        }
+        
+        {
+            rigid_body_l2* CurrRigidBody = Result.RigidBodyArray + 1;
+            *CurrRigidBody = {};
+
+            CurrRigidBody->Type = RigidBodyTypeL2_Circle;
+            CurrRigidBody->Circle.Radius = 0.25f;
         }
     }
 #endif
@@ -155,15 +180,14 @@ inline void RigidBodySimUpdate(rigid_body_sim_l2* Sim, f32 FrameTime, render_sce
         f32 CurrBodyRotation = CurrBody->Rotation;
 
         // NOTE: Populate draw instances
-        m4 Transform = (M4Pos(V3(CurrBodyPos, 0)) *
-                        M4Rotation(V3(0.0f, 0.0f, CurrBodyRotation)));
-
+        f32 Scale = 1.0f;
         u32 MeshId = 0;
         switch (CurrBody->Type)
         {
             case RigidBodyTypeL2_Circle:
             {
                 MeshId = DemoState->CircleId;
+                Scale = 2.0f * CurrBody->Circle.Radius;
             } break;
 
             case RigidBodyTypeL2_Polygon:
@@ -171,6 +195,10 @@ inline void RigidBodySimUpdate(rigid_body_sim_l2* Sim, f32 FrameTime, render_sce
                 MeshId = CurrBody->Polygon.MeshId;
             } break;
         }
+
+        m4 Transform = (M4Pos(V3(CurrBodyPos, 0)) *
+                        M4Rotation(V3(0.0f, 0.0f, CurrBodyRotation))*
+                        M4Scale(V3(Scale)));
 
         // NOTE: Check if we collide with anything
         b32 Collides = false;

@@ -218,14 +218,14 @@ inline void RigidBodySimUpdate(rigid_body_sim_l2* Sim, f32 FrameTime, render_sce
             gjk_result_2d CollisionResult = Gjk2d(GeometryA, CurrBodyPos, CurrBodyRotation, SupportA,
                                                   GeometryB, OtherBodyPos, OtherBodyRotation, SupportB);
 
-            DebugPushPoint(CollisionResult.ContactPoint1, V4(1, 0, 0, 1));
-            DebugPushPoint(CollisionResult.ContactPoint2, V4(0, 1, 0, 1));
+            DebugPushPoint(CollisionResult.WorldPoint1, V4(1, 0, 0, 1));
+            DebugPushPoint(CollisionResult.WorldPoint2, V4(0, 1, 0, 1));
             
-            DebugPushLine(CollisionResult.ContactPoint1, CollisionResult.ContactPoint1 - CollisionResult.Normal * CollisionResult.Distance, V4(0, 0, 1, 1));
+            DebugPushLine(CollisionResult.WorldPoint1, CollisionResult.WorldPoint1 - CollisionResult.Normal * CollisionResult.Distance, V4(0, 0, 1, 1));
 
             // NOTE: Draw the normal
             {
-                v2 MidPoint = Lerp(CollisionResult.ContactPoint1, CollisionResult.ContactPoint2, 0.5f);
+                v2 MidPoint = Lerp(CollisionResult.WorldPoint1, CollisionResult.WorldPoint2, 0.5f);
                 DebugPushLine(MidPoint, MidPoint + CollisionResult.Normal, V4(0, 0, 1, 1));
             }
             

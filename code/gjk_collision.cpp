@@ -357,10 +357,11 @@ inline gjk_result_2d Gjk2d(void* GeometryA, v2 PosA, f32 AngleA, gjk_support_l2*
                 }
                 
                 DebugPushLine(V2(0), DirectionToEdge, V4(1.0f, 0.5f, 0.2f, 1.0f));
-#endif                
-                Result.ContactPoint1 = Lerp(EpaGeoAPoints[ClosestEdgeId + 0], EpaGeoAPoints[ClosestEdgeId + 1], ClosestEdgeT);
-                Result.ContactPoint2 = Lerp(-(EpaPoints[ClosestEdgeId + 0] - EpaGeoAPoints[ClosestEdgeId + 0]),
-                                            -(EpaPoints[ClosestEdgeId + 1] - EpaGeoAPoints[ClosestEdgeId + 1]), ClosestEdgeT);
+#endif
+                
+                Result.WorldPoint1 = Lerp(EpaGeoAPoints[ClosestEdgeId + 0], EpaGeoAPoints[ClosestEdgeId + 1], ClosestEdgeT);
+                Result.WorldPoint2 = Lerp(-(EpaPoints[ClosestEdgeId + 0] - EpaGeoAPoints[ClosestEdgeId + 0]),
+                                          -(EpaPoints[ClosestEdgeId + 1] - EpaGeoAPoints[ClosestEdgeId + 1]), ClosestEdgeT);
                 Result.Normal = EdgeNormal;
                 Result.Distance = SupportPointDistance;
                 break;

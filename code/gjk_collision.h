@@ -14,8 +14,8 @@ struct polygon_2d
 
 struct gjk_result_2d
 {
-    v2 ContactPoint1;
-    v2 ContactPoint2;
+    v2 WorldPoint1;
+    v2 WorldPoint2;
     v2 Normal;
     f32 Distance;
     b32 Intersects;
